@@ -6,9 +6,10 @@ User-friendly interface for scraping websites and extracting structured informat
 import logging
 import json
 import sys
+import requests
 from typing import Optional
 from agents.scrapper_agent import WebScrapingCrew
-from config import OUTPUT_JSON_INDENT
+from config import OUTPUT_JSON_INDENT, WEBHOOK_URL
 
 # Configure logging
 logging.basicConfig(
@@ -163,15 +164,42 @@ class WebScraperApp:
         print("\n" + "-"*70)
         self.offer_json_export(data)
 
+    def send_to_webhook(self, data: dict, webhook_url: str) -> None:
+        """
+        Send JSON data to a webhook URL via POST.
+
+        Args:
+            data: Extracted data to send
+            webhook_url: Destination URL for webhook
+        """
+        try:
+            headers = {'Content-Type': 'application/json'}
+            response = requests.post(webhook_url, json=data, headers=headers, timeout=30)
+            response.raise_for_status()
+            print(f"✅ Payload successfully sent to webhook: {webhook_url} (status {response.status_code})")
+        except requests.RequestException as e:
+            print(f"❌ Webhook request failed: {str(e)}")
+
     def offer_json_export(self, data: dict) -> None:
         """
-        Offer to export results as JSON file.
+        Offer to export results as JSON file or send to webhook.
 
         Args:
             data: Extracted data to export
         """
-        export = input("Would you like to export the results as JSON? (yes/no): ").strip().lower()
-        if export in ["yes", "y"]:
+        choice = input("Choose output destination: file / webhook / none (default file): ").strip().lower() or "file"
+
+        if choice in ["webhook", "hook"]:
+            webhook_url = WEBHOOK_URL
+            if not webhook_url:
+                webhook_url = input("Enter webhook URL (or set WEBHOOK_URL in .env): ").strip()
+            if not webhook_url:
+                print("❌ Webhook URL is not configured.")
+                return
+            self.send_to_webhook(data, webhook_url)
+            return
+
+        if choice in ["file", "f"]:
             filename = input("Enter filename (default: 'extraction_results.json'): ").strip()
             if not filename:
                 filename = "extraction_results.json"
@@ -182,6 +210,9 @@ class WebScraperApp:
                 print(f"✅ Results exported to '{filename}'")
             except Exception as e:
                 print(f"❌ Error exporting JSON: {str(e)}")
+            return
+
+        print("ℹ️  No output destination selected.")
 
     def run_interactive(self) -> None:
         """Run the application in interactive mode."""

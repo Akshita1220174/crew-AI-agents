@@ -35,6 +35,9 @@ SELENIUM_HEADLESS = os.getenv("SELENIUM_HEADLESS", "True").lower() == "true"
 # Output Configuration
 OUTPUT_JSON_INDENT = int(os.getenv("OUTPUT_JSON_INDENT", "2"))
 
+# Webhook Configuration
+WEBHOOK_URL = os.getenv("WEBHOOK_URL", "").strip()
+
 # Validation
 if not OPENAI_API_KEY and not GEMINI_API_KEY:
     print("WARNING: No LLM API key found. Please set either OPENAI_API_KEY or GEMINI_API_KEY in .env file.")
